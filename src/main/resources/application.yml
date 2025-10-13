@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: temporal-practice
+  profiles:
+    active: dev
+  temporal:
+    workers-auto-discovery:
+      packages:
+        - org.example.temporal
+  docker:
+    compose:
+      skip:
+        in-tests: true
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  temporal:
+    connection:
+      target: localhost:7233

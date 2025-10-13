@@ -1,1 +1,1 @@
-rootProject.name = "temporal"
+rootProject.name = "temporal-practice"

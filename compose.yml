@@ -1,0 +1,11 @@
+services:
+  temporal:
+    image: temporalio/temporal:latest
+    ports:
+      - "7233:7233"
+      - "8233:8233"
+    command:
+      - server
+      - start-dev
+      - --ip
+      - 0.0.0.0
