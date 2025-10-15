@@ -6,6 +6,7 @@ import io.temporal.client.WorkflowStub;
 import io.temporal.testing.TestWorkflowExtension;
 import io.temporal.worker.Worker;
 import org.example.temporal.model.FooRequest;
+import org.example.temporal.model.FooResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,11 +48,14 @@ class OptionalWorkflowImplTest {
                         .build()).build();
 
         // when
-        workflow.foo(request);
+        FooResponse result = workflow.foo(request);
 
         // then
         requestLogShouldBe(capturedOutput, "FooRequest(id=1, name=Alice, email=Optional[alice@example.com], phone=Optional[0912345678], address=Optional[FooRequest.Address(street=123 Main St, city=Taipei, postalCode=Optional[100])])");
         assertThat(mapper.writeValueAsString(request)).isEqualTo("{\"id\":1,\"name\":\"Alice\",\"email\":\"alice@example.com\",\"phone\":\"0912345678\",\"address\":{\"street\":\"123 Main St\",\"city\":\"Taipei\",\"postalCode\":\"100\"}}");
+        assertThat(result.getId()).isEqualTo(1);
+        assertThat(result.getPhone().orElseThrow()).isEqualTo("0912345678");
+        assertThat(result.getAddress().orElseThrow().getPostalCode().orElseThrow()).isEqualTo("100");
     }
 
     @Test
@@ -60,11 +64,12 @@ class OptionalWorkflowImplTest {
         FooRequest request = FooRequest.builder().id(1).name("Alice").email("alice@example.com").phone("0912345678").address(null).build();
 
         // when
-        workflow.foo(request);
+        FooResponse result = workflow.foo(request);
 
         // then
         requestLogShouldBe(capturedOutput, "FooRequest(id=1, name=Alice, email=Optional[alice@example.com], phone=Optional[0912345678], address=Optional.empty)");
         assertThat(mapper.writeValueAsString(request)).isEqualTo("{\"id\":1,\"name\":\"Alice\",\"email\":\"alice@example.com\",\"phone\":\"0912345678\",\"address\":null}");
+        assertThat(result.getAddress()).isNotPresent();
     }
 
     @Test
@@ -73,11 +78,13 @@ class OptionalWorkflowImplTest {
         FooRequest request = FooRequest.builder().id(1).name("Alice").email(null).phone(null).address(FooRequest.Address.builder().street("123 Main St").city("Taipei").postalCode(null).build()).build();
 
         // when
-        workflow.foo(request);
+        FooResponse result = workflow.foo(request);
 
         // then
         requestLogShouldBe(capturedOutput, "FooRequest(id=1, name=Alice, email=Optional.empty, phone=Optional.empty, address=Optional[FooRequest.Address(street=123 Main St, city=Taipei, postalCode=Optional.empty)])");
         assertThat(mapper.writeValueAsString(request)).isEqualTo("{\"id\":1,\"name\":\"Alice\",\"email\":null,\"phone\":null,\"address\":{\"street\":\"123 Main St\",\"city\":\"Taipei\",\"postalCode\":null}}");
+        assertThat(result.getPhone()).isNotPresent();
+        assertThat(result.getAddress()).isPresent();
     }
 
     @Test
@@ -88,24 +95,29 @@ class OptionalWorkflowImplTest {
 
         // when
         workflowStub.start(request);
+        FooResponse result = workflowStub.getResult(FooResponse.class);
 
         // then
-        assertThat(workflowStub.getResult(Object.class)).isNotNull();
         requestLogShouldBe(capturedOutput, "FooRequest(id=1, name=Alice, email=Optional.empty, phone=Optional.empty, address=Optional[FooRequest.Address(street=123 Main St, city=Taipei, postalCode=Optional.empty)])");
         assertThat(mapper.writeValueAsString(request)).isEqualTo("{\"id\":1,\"name\":\"Alice\",\"email\":null,\"phone\":null,\"address\":{\"street\":\"123 Main St\",\"city\":\"Taipei\",\"postalCode\":null}}");
+        assertThat(result.getPhone()).isNotPresent();
+        assertThat(result.getAddress()).isPresent();
     }
 
     @Test
     void setNonNullFieldToNull(WorkflowClient workflowClient, Worker worker, CapturedOutput capturedOutput) throws Exception {
         // given
+        // Since the name field of FooRequest is protected by Lombok, we can’t set it to null;
+        // an exception will be thrown when creating the object.
+        // Therefore, we should send the workflow request as a JSON string instead.
         Object request = mapper.readValue("{\"id\":1,\"name\":null,\"email\":\"alice@example.com\",\"phone\":\"0912345678\",\"address\":{\"street\":\"123 Main St\",\"city\":\"Taipei\",\"postalCode\":\"100\"}}", Map.class);
         WorkflowStub workflowStub = workflowClient.newUntypedWorkflowStub(OptionalWorkflow.class.getSimpleName(), WorkflowOptions.newBuilder().setTaskQueue(worker.getTaskQueue()).build());
 
         // when
         workflowStub.start(request);
+        workflowStub.getResult(FooResponse.class);
 
         // then
-        assertThat(workflowStub.getResult(Object.class)).isNotNull();
         Optional<String> requestLog = extractRequestLog(capturedOutput.getOut());
         assertThat(requestLog.orElseThrow()).doesNotContain("name=null"); // failed
         /**

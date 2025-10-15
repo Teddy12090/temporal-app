@@ -8,6 +8,11 @@ public class OptionalWorkflowImpl implements OptionalWorkflow {
     @Override
     public FooResponse foo(FooRequest request) {
         Workflow.getLogger(OptionalWorkflowImpl.class).info(request.toString());
-        return FooResponse.builder().build();
+        return FooResponse
+                .builder()
+                .id(request.getId())
+                .phone(request.getPhone().orElse(null))
+                .address(request.getAddress().orElse(null))
+                .build();
     }
 }
