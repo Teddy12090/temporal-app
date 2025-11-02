@@ -30,6 +30,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     runtimeOnly("org.springframework.boot:spring-boot-docker-compose")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    implementation("com.google.code.gson:gson:2.13.2")
 }
 
 tasks.withType<Test> {

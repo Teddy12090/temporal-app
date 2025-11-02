@@ -2,10 +2,10 @@ package org.example.temporal.workflow;
 
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
-import org.example.temporal.model.CreateOrderRequest;
+import org.example.temporal.model.FilterRequest;
 
 @WorkflowInterface
-public interface CreateOrderWorkflow {
+public interface FilterWorkflow {
     @WorkflowMethod
-    String createOrder(CreateOrderRequest request);
+    String filter(FilterRequest request);
 }
